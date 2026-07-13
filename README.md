@@ -1,16 +1,49 @@
-# React + Vite
+# Wilkerstat Studio — React JS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Migrasi dari prototipe HTML tunggal (`wilkerstat-studio-prototype.html`) ke project React + Vite.
 
-Currently, two official plugins are available:
+## Menjalankan
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev      # buka http://localhost:5173
+npm run build    # build produksi ke dist/
+```
 
-## React Compiler
+## Struktur hasil migrasi
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```
+src/
+├── main.jsx                  # entry point (import leaflet.css + index.css)
+├── App.jsx                   # layout utama + state mode aktif (WA/WS/WSS/INSET)
+├── index.css                 # seluruh CSS prototipe (dipindahkan apa adanya)
+├── utils.js                  # hashStr, niceScale, fmtDist, nowStr, MODE_LABEL, URL basemap
+├── data/
+│   ├── kec.json              # GeoJSON kecamatan (diekstrak dari <script id="KEC_DATA">)
+│   ├── desa.json             # GeoJSON desa (dari DESA_DATA)
+│   ├── sls.json              # GeoJSON SLS/Sub-SLS (dari SLS_DATA)
+│   └── index.js              # pengayaan properti + lookup + getSlsGroupsForDesa
+├── assets/
+│   └── bps-logo.png          # logo BPS (diekstrak dari base64 di prototipe)
+└── components/
+    ├── Topbar.jsx            # header + jam WITA
+    ├── Rail.jsx              # sidebar jenis peta + statistik cakupan
+    ├── Toast.jsx             # ToastProvider + hook useToast
+    ├── TemplateView.jsx      # mode WA/WS/WSS: select berjenjang, generate, basis data mock
+    ├── MapSheet.jsx          # lembar peta kartografis (Leaflet, skala, legenda, QR, lokator)
+    └── InsetView.jsx         # mode WS-Inset: pencarian SLS, toolbar peta, simpan inset
+```
 
-## Expanding the ESLint configuration
+## Catatan migrasi
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Data GeoJSON** yang sebelumnya tertanam di dalam HTML (±1,1 MB) dipisah menjadi file JSON
+  di `src/data/` dan di-import langsung oleh Vite.
+- **Leaflet dipakai langsung** (bukan react-leaflet) di dalam `useEffect` + `ref` agar logika
+  fitBounds, divIcon label area, dan perhitungan skala tetap identik dengan prototipe.
+- Semua state DOM imperatif (mode aktif, seleksi berjenjang, daftar basis data,
+  inset tersimpan, modal, toast) dikonversi menjadi React state/hooks.
+- Ekspor PNG/PDF masih simulasi (toast) seperti prototipe — dependensi `html2canvas` dan
+  `jspdf` sudah tersedia di package.json bila ingin diimplementasikan sungguhan pada
+  elemen `.sheet`.
+- Perilaku dipertahankan: pindah mode WA↔WS↔WSS mereset pilihan desa ke bawah tetapi
+  mempertahankan kecamatan; peta inset tetap ter-mount saat berpindah mode.
