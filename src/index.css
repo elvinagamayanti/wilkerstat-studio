@@ -29,7 +29,13 @@ select,input{font-family:inherit;}
 .topbar-meta b{color:var(--ink);font-weight:600;}
 .topbar-meta .dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;box-shadow:0 0 0 3px var(--green-pale);}
 
-.shell{display:grid;grid-template-columns:222px 1fr;min-height:0;}
+.shell{
+  display:grid;
+  grid-template-columns:222px 1fr;
+  min-height:0;
+  transition:grid-template-columns .22s ease;
+}
+.shell.rail-closed{grid-template-columns:0 1fr;}
 
 .rail{background:var(--panel);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;}
 .rail-label{font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-faint);padding:4px 8px 8px;}
@@ -225,3 +231,153 @@ input.txt:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-pale);}
 /* ===== Penyesuaian migrasi React ===== */
 .db-item{cursor:pointer;transition:border-color .12s ease;}
 .db-item:hover{border-color:var(--blue);}
+
+/* pembungkus rail: lebar dikontrol grid .shell, isi tetap 222px */
+.rail-col{min-height:0;overflow:hidden;}
+.rail-col .rail{width:222px;height:100%;}
+ 
+/* tombol hamburger di topbar */
+.icon-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:34px;height:34px;flex-shrink:0;
+  border:1px solid var(--line);border-radius:8px;
+  background:var(--panel);color:var(--ink-soft);
+  transition:all .12s ease;
+}
+.icon-btn:hover{background:var(--paper);color:var(--ink);border-color:var(--line-strong);}
+ 
+/* backdrop hanya dipakai di mode mobile */
+.rail-backdrop{display:none;}
+
+/* kurung z-index internal Leaflet agar tidak menembus sidebar/drawer */
+.leaflet-container{position:relative;z-index:0;}
+ 
+/* ===== panel pemilihan wilayah (config) collapsible ===== */
+.main{position:relative;}
+.view{transition:grid-template-columns .22s ease;}
+.main.panel-hidden .view.active{grid-template-columns:0 1fr;}
+.config-col{min-width:0;}
+.main.panel-hidden .config-col{
+  overflow:hidden;
+  padding-left:0;padding-right:0;
+  border-right:none;
+}
+ 
+/* tombol toggle di batas panel wilayah <-> area peta */
+.panel-toggle{
+  position:absolute;top:50%;left:320px;z-index:60;
+  transform:translate(-50%,-50%);
+  display:flex;align-items:center;justify-content:center;
+  width:24px;height:52px;
+  border:1px solid var(--line-strong);border-radius:8px;
+  background:var(--panel);color:var(--ink-soft);
+  box-shadow:0 2px 10px rgba(21,32,41,.14);
+  transition:left .22s ease, color .12s ease;
+}
+.panel-toggle:hover{color:var(--blue);border-color:var(--blue);}
+.main.panel-hidden .panel-toggle{
+  left:0;transform:translate(0,-50%);
+  border-top-left-radius:0;border-bottom-left-radius:0;border-left:none;
+}
+ 
+/* ================= RESPONSIVE ================= */
+ 
+/* layar sedang */
+@media (max-width:1100px){
+  .view.active{grid-template-columns:280px 1fr;}
+  .inset-view{grid-template-columns:280px 1fr;}
+  .panel-toggle{left:280px;}
+  .main.panel-hidden .panel-toggle{left:0;}
+}
+ 
+/* layar kecil / tablet-HP */
+@media (max-width:900px){
+  .shell,
+  .shell.rail-closed{grid-template-columns:1fr;}
+ 
+  /* sidebar jenis peta jadi drawer overlay */
+  .rail-col{
+    position:fixed;top:56px;left:0;bottom:0;width:246px;z-index:120;
+    background:var(--panel);
+    box-shadow:4px 0 18px rgba(21,32,41,.18);
+    transform:translateX(0);
+    transition:transform .22s ease;
+    overflow:visible;
+  }
+  .rail-col .rail{width:100%;}
+  .shell.rail-closed .rail-col{transform:translateX(-105%);box-shadow:none;}
+ 
+  .rail-backdrop{
+    display:block;position:fixed;top:56px;left:0;right:0;bottom:0;
+    background:rgba(21,32,41,.35);z-index:110;
+  }
+ 
+  /* panel wilayah & peta ditumpuk vertikal */
+  .view.active{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
+  .config-col{border-right:none;border-bottom:1px solid var(--line);max-height:46vh;}
+  .inset-view{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
+ 
+  /* panel hidden di mobile: hilang total, peta full page */
+  .main.panel-hidden .config-col{display:none;}
+ 
+  /* FIX: override rule desktop (grid-template-columns:0 1fr)
+     agar area peta tidak ikut menyusut jadi 0 saat panel ditutup */
+  .main.panel-hidden .view.active{
+    grid-template-columns:1fr;
+    grid-template-rows:1fr;
+  }
+ 
+  /* tombol toggle jadi pil kecil di kanan atas area konten */
+  .panel-toggle,
+  .main.panel-hidden .panel-toggle{
+    top:8px;left:auto;right:10px;bottom:auto;
+    transform:none;
+    width:34px;height:30px;
+    border-radius:8px;border-left:1px solid var(--line-strong);
+  }
+  /* chevron kiri/kanan diputar jadi atas/bawah */
+  .panel-toggle svg{transform:rotate(90deg);}
+ 
+  /* ====== FIX lembar peta 900px agar tidak meluber ====== */
+  .preview-col{padding:12px;}
+  .sheet{width:100%;padding:12px;}
+  .export-bar{width:100%;flex-wrap:wrap;}
+  .export-bar .btn{min-width:140px;}
+ 
+  /* info samping pindah ke bawah peta */
+  .sheet-grid{grid-template-columns:1fr;gap:12px;}
+  .map-frame{height:min(62vh,520px);}
+ 
+  .sheet-topline{flex-wrap:wrap;gap:8px;}
+  .sheet-title{font-size:15px;}
+  .id-pill{font-size:12px;padding:4px 9px;}
+ 
+  /* topbar tetap fix, hanya elemen sekunder yang disembunyikan */
+  .proto-badge{display:none;}
+  .topbar-meta span:first-child{display:none;}
+  .topbar .brand-text span{display:none;}
+}
+ 
+/* layar sangat kecil */
+@media (max-width:520px){
+  .topbar{padding:0 10px;gap:8px;}
+  .topbar-meta{display:none;}
+  .preview-col{padding:8px;}
+  .map-frame{height:min(58vh,440px);}
+  .export-bar .btn{min-width:100%;}
+}
+
+/* basemap lembar peta: lebih pucat & terang seperti template pusat */
+.map-frame .leaflet-tile-pane{
+  filter: saturate(0.65) brightness(1.12) contrast(0.95);
+}
+
+/* label area: lebih kecil, font sans bold seperti template pusat */
+.leaflet-marker-icon.area-label{
+  font-family:Arial,'Inter',sans-serif;
+  font-size:7px;
+  font-weight:700;
+  letter-spacing:0.02em;
+}
+
+.id-pill.dark{background:var(--ink);color:#fff;border-color:var(--ink);}

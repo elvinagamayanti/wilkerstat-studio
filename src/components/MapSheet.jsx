@@ -152,9 +152,68 @@ export default function MapSheet({ layout }) {
     const map = L.map(mainMapRef.current, { attributionControl: false, preferCanvas: true })
     L.tileLayer(ESRI_SAT, { maxZoom: 19 }).addTo(map)
 
-    const desaLayer = L.geoJSON(desa, {
-      style: { color: '#D5241E', weight: 2.6, fillOpacity: 0 },
-    }).addTo(map)
+    // pane khusus halo: di bawah garis batas, diberi blur agar lembut
+    map.createPane('halo')
+    const haloPane = map.getPane('halo')
+    haloPane.style.zIndex = 350            // di bawah overlayPane (400) tempat garis merah
+    haloPane.style.filter = 'blur(4px)'    // inilah yang bikin smooth
+    haloPane.style.pointerEvents = 'none'
+
+    const fitGeo =
+      mode === 'WA'
+        ? desa
+        : mode === 'WS'
+          ? { type: 'FeatureCollection', features: group.features }
+          : subsls
+    const padPx = mode === 'WA' ? [20, 20] : [60, 60]
+    map.fitBounds(L.geoJSON(fitGeo).getBounds(), { padding: padPx, maxZoom: 19 })
+
+    // gaya garis sesuai legenda template pusat
+    const RED = '#D5241E'
+    // Batas Desa/Kelurahan: merah solid
+    const STYLE_DESA = { color: RED, weight: 2, fillOpacity: 0 }
+    // Batas SLS/Sub-SLS (tetangga): merah putus-putus tipis
+    const STYLE_SLS = { color: RED, weight: 1.1, dashArray: '7,5', fillOpacity: 0 }
+    // Wilayah terpilih: merah putus-putus tebal, tanpa fill (jernih)
+    const STYLE_SELECTED = { color: RED, weight: 2.2, dashArray: '10,7', fillOpacity: 0 }
+
+    // lapisan mask putih: semua area DI LUAR wilayah terpilih
+    const addMask = (features) => {
+      const world = [
+        [-180, -90],
+        [180, -90],
+        [180, 90],
+        [-180, 90],
+        [-180, -90],
+      ]
+      const holes = []
+      features.forEach((f) => {
+        const g = f.geometry || f
+        if (!g) return
+        if (g.type === 'Polygon') {
+          holes.push(g.coordinates[0])
+        } else if (g.type === 'MultiPolygon') {
+          g.coordinates.forEach((poly) => holes.push(poly[0]))
+        }
+      })
+      if (!holes.length) return
+      L.geoJSON(
+        { type: 'Feature', geometry: { type: 'Polygon', coordinates: [world, ...holes] } },
+        {
+          style: { stroke: false, fillColor: '#ffffff', fillOpacity: 0.22 },
+          interactive: false,
+        },
+      ).addTo(map)
+    }
+
+    // halo putih lembut di bawah garis batas (khas template WA)
+    const addHalo = (geo, weight) => {
+      L.geoJSON(geo, {
+        pane: 'halo',
+        style: { color: '#ffffff', weight, opacity: 0.8, fillOpacity: 0 },
+        interactive: false,
+      }).addTo(map)
+    }
 
     const allSubsls = SLS.features.filter((f) => f.properties.iddesa === dp.iddesa)
 
@@ -170,35 +229,50 @@ export default function MapSheet({ layout }) {
       }
     }
 
-    let fitTarget
     if (mode === 'WA') {
+      // mask luar desa
+      addMask([desa])
+      // selubung tipis menutupi SELURUH peta — di template WA
+      // area terpilih pun tidak 100% jernih
+      L.rectangle(
+        [
+          [-89.9, -179.9],
+          [89.9, 179.9],
+        ],
+        { stroke: false, fillColor: '#ffffff', fillOpacity: 0.08, interactive: false },
+      ).addTo(map)
+      // halo putih dulu semua, baru garis merah di atasnya
+      allSubsls.forEach((f) => addHalo(f, 3))
+    
       allSubsls.forEach((f) => {
-        L.geoJSON(f, {
-          style: { color: '#D5241E', weight: 1.1, dashArray: '5,3', fillOpacity: 0 },
-        }).addTo(map)
+        L.geoJSON(f, { style: STYLE_SLS }).addTo(map)
         addAreaLabel(f)
       })
-      fitTarget = desaLayer
+      L.geoJSON(desa, { style: STYLE_DESA }).addTo(map)
     } else if (mode === 'WS') {
-      fitTarget = L.geoJSON(
+      // jernih: seluruh SLS terpilih (semua sub-nya)
+      addMask(group.features)
+      allSubsls.forEach((f) => {
+        if (f.properties.idsls === group.idsls) return
+        L.geoJSON(f, { style: STYLE_SLS }).addTo(map)
+        addAreaLabel(f)
+      })
+      L.geoJSON(desa, { style: STYLE_DESA }).addTo(map)
+      L.geoJSON(
         { type: 'FeatureCollection', features: group.features },
-        { style: { color, weight: 2.6, fillColor: color, fillOpacity: 0.16 } },
+        { style: STYLE_SELECTED },
       ).addTo(map)
     } else {
+      // jernih: hanya sub-SLS terpilih
+      addMask([subsls])
       allSubsls.forEach((f) => {
         if (f.properties.idsubsls === subsls.properties.idsubsls) return
-        L.geoJSON(f, {
-          style: { color: '#D5241E', weight: 1.1, dashArray: '5,3', fillOpacity: 0 },
-        }).addTo(map)
+        L.geoJSON(f, { style: STYLE_SLS }).addTo(map)
         addAreaLabel(f)
       })
-      fitTarget = L.geoJSON(subsls, {
-        style: { color, weight: 2.8, fillColor: color, fillOpacity: 0.2 },
-      }).addTo(map)
+      L.geoJSON(desa, { style: STYLE_DESA }).addTo(map)
+      L.geoJSON(subsls, { style: STYLE_SELECTED }).addTo(map)
     }
-
-    const padPx = mode === 'WA' ? [20, 20] : [60, 60]
-    map.fitBounds(fitTarget.getBounds(), { padding: padPx, maxZoom: 19 })
 
     const tm = setTimeout(() => {
       map.invalidateSize()
@@ -262,7 +336,7 @@ export default function MapSheet({ layout }) {
       <div className="sheet">
         <div className="sheet-topline">
           <h1 className="sheet-title">{title}</h1>
-          <div className="id-pill">{pill}</div>
+          <div className={`id-pill${mode === 'WA' ? ' dark' : ''}`}>{pill}</div>
         </div>
         <div className="sheet-grid">
           <div className="map-frame">

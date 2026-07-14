@@ -2,7 +2,7 @@ import { stats } from '../data'
 
 const MODES = [
   { key: 'WA', icon: 'WA', title: 'Wilayah Administrasi', sub: 'Batas desa + seluruh SLS' },
-  { key: 'WS', icon: 'WS', title: 'Wilayah SLS', sub: '1 RT/RW/Dusun utuh' },
+  { key: 'WS', icon: 'WS', title: 'Wilayah SLS', sub: 'Rincian per SLS' },
   { key: 'WSS', icon: 'WSS', title: 'Wilayah Sub-SLS', sub: 'Rincian per sub-SLS' },
   { key: 'INSET', icon: '⌖', title: 'WS-Inset', sub: 'Peta acuan tambahan' },
 ]
