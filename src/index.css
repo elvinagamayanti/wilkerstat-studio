@@ -372,12 +372,13 @@ input.txt:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-pale);}
   filter: saturate(0.65) brightness(1.12) contrast(0.95);
 }
 
-/* label area: lebih kecil, font sans bold seperti template pusat */
+/* label area: kecil, font sans bold, benar-benar centered di titik area */
 .leaflet-marker-icon.area-label{
   font-family:Arial,'Inter',sans-serif;
-  font-size:7px;
+  font-size:6px;
   font-weight:700;
   letter-spacing:0.02em;
 }
+.area-label-in{transform:translate(-50%,-50%);}
 
 .id-pill.dark{background:var(--ink);color:#fff;border-color:var(--ink);}

@@ -6,7 +6,7 @@ import { ESRI_SAT, MODE_LABEL, hashStr, niceScale, fmtDist } from '../utils'
 import bpsLogo from '../assets/bps-logo.png'
 
 function areaLabelHtml(feat) {
-  return `${feat.properties.nmsls}<br>[${feat.properties.kdsubsls}]`
+  return `<div class="area-label-in">${feat.properties.nmsls}<br>[${feat.properties.kdsubsls}]</div>`
 }
 
 function Legend({ mode }) {
