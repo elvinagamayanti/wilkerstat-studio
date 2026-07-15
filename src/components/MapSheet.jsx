@@ -163,7 +163,12 @@ export default function MapSheet({ layout }) {
 
   // ---- peta utama ----
   useEffect(() => {
-    const map = L.map(mainMapRef.current, { attributionControl: false, preferCanvas: true })
+    const map = L.map(mainMapRef.current, {
+      attributionControl: false,
+      preferCanvas: true,
+      zoomSnap: 0,      // izinkan zoom pecahan → fitBounds bisa rapat persis ke wilayah
+      zoomDelta: 0.25,
+    })
     L.tileLayer(ESRI_SAT, { maxZoom: 19, crossOrigin: 'anonymous' }).addTo(map)
 
     // pane khusus halo: di bawah garis batas, diberi blur agar lembut
@@ -176,7 +181,7 @@ export default function MapSheet({ layout }) {
     // PENTING: set view DULU sebelum layer vektor ditambahkan
     // (renderer canvas Leaflet error kalau layer masuk sebelum ada view).
     // Padding kecil agar wilayah terpilih tampil zoom rapat memenuhi frame.
-    const padPx = mode === 'WA' ? [12, 12] : [30, 30]
+    const padPx = mode === 'WA' ? [8, 8] : [14, 14]
     map.fitBounds(L.geoJSON(fitGeo).getBounds(), { padding: padPx, maxZoom: 19 })
 
     // gaya garis sesuai legenda template pusat
