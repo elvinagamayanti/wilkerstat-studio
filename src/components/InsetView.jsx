@@ -104,8 +104,11 @@ export default function InsetView({ active }) {
         setScale({ segs, dist, segPx: dist / mpp / segs })
       })
       mapRef.current = map
-      satRef.current = L.tileLayer(ESRI_SAT, { maxZoom: 19, crossOrigin: 'anonymous' }).addTo(map)
-      streetRef.current = L.tileLayer(OSM_STREET, { maxZoom: 19, crossOrigin: 'anonymous' }).addTo(map)
+      satRef.current = sat
+      streetRef.current = street
+
+      sat.setOpacity(basemap === 'sat' ? 1 : 0)
+      street.setOpacity(basemap === 'street' ? 1 : 0)
     }
     const map = mapRef.current
     if (boundaryRef.current) map.removeLayer(boundaryRef.current)
