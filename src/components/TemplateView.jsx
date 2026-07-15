@@ -148,10 +148,9 @@ export default function TemplateView({ mode, active }) {
 
   const exportName = () => {
     if (!layout) return 'peta'
-    const parts = ['Peta', layout.mode, layout.desa.properties.nmdesa]
-    if (layout.group) parts.push(layout.group.nmsls)
-    if (layout.subsls) parts.push(layout.subsls.properties.kdsubsls)
-    return safeFileName(parts.join(' '))
+    if (layout.mode === 'WA') return `${layout.desa.properties.iddesa}_WA`   // 7310010006_WA
+    if (layout.mode === 'WS') return `${layout.group.idsls}_WS`              // 73100100060001_WS
+    return `${layout.subsls.properties.idsubsls}_WSS`                        // 7310010006000100_WSS
   }
 
   const onExport = async (type) => {

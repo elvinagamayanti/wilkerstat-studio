@@ -317,7 +317,7 @@ export default function InsetView({ active }) {
     setExporting(true)
     showToast(type === 'png' ? 'Menyiapkan PNG…' : 'Menyiapkan PDF…')
     try {
-      const name = safeFileName(`Peta WS ${group.nmsls} ${insetLabel}`)
+      const name = `${idsls}_WS-${String(viewNo).padStart(2, '0')}`
       if (type === 'png') await exportSheetPNG(el, name + '.png')
       else await exportSheetPDF(el, name + '.pdf')
       showToast(`${insetLabel} berhasil diunduh`)
