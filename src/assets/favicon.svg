@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1F7CC9"/>
+      <stop offset="1" stop-color="#0E4A80"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ubin dasar -->
+  <rect width="64" height="64" rx="14" fill="url(#tile)"/>
+
+  <!-- graticule halus (kesan peta) -->
+  <g stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="1.5">
+    <line x1="0" y1="22" x2="64" y2="22"/>
+    <line x1="0" y1="42" x2="64" y2="42"/>
+    <line x1="22" y1="0" x2="22" y2="64"/>
+    <line x1="42" y1="0" x2="42" y2="64"/>
+  </g>
+
+  <!-- batas wilayah (poligon SLS) -->
+  <path d="M15 25 L26 14 L41 16 L51 27 L47 41 L34 50 L19 45 L12 34 Z"
+        fill="#FFFFFF" fill-opacity="0.16"
+        stroke="#FFFFFF" stroke-width="3.5"
+        stroke-linejoin="round"/>
+
+  <!-- titik lokasi -->
+  <circle cx="38" cy="31" r="6.5" fill="#F5921E" stroke="#FFFFFF" stroke-width="2.5"/>
+</svg>

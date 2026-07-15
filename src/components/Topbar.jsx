@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { nowStr } from '../utils'
 import bpsLogo from '../assets/bps-logo.png'
+import favicon from '../assets/favicon.svg'
 
 export default function Topbar({ railOpen, onToggleRail }) {
   const [clock, setClock] = useState(nowStr())
@@ -26,13 +27,13 @@ export default function Topbar({ railOpen, onToggleRail }) {
         </svg>
       </button>
       <div className="brandmark">
-        <img src={bpsLogo} alt="BPS" />
+        <img src={favicon} alt="BPS" />
         <div className="brand-text">
           Wilkerstat Studio
           <span>BPS Kabupaten Barru · Generator Peta Wilayah Kerja</span>
         </div>
       </div>
-      <span className="proto-badge">● PROTOTIPE FRONTEND</span>
+      <span className="proto-badge">● PROTOTIPE</span>
       <div className="topbar-spacer"></div>
       <div className="topbar-meta">
         <span>
