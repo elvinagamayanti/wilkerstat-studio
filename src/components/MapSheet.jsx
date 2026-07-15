@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { KEC, SLS } from '../data'
+import { KEC, DESA, SLS } from '../data'
 import { ESRI_SAT, MODE_LABEL, hashStr, niceScale, fmtDist } from '../utils'
 import bpsLogo from '../assets/bps-logo.png'
 
@@ -147,6 +147,20 @@ export default function MapSheet({ layout }) {
     seed = subsls.properties.idsubsls
   }
 
+  // geometri fokus + deteksi orientasi lembar (landscape/portrait)
+  // berdasarkan proporsi bounding box wilayah terpilih
+  const fitGeo =
+    mode === 'WA'
+      ? desa
+      : mode === 'WS'
+        ? { type: 'FeatureCollection', features: group.features }
+        : subsls
+  const fb = L.geoJSON(fitGeo).getBounds()
+  const midLat = (fb.getNorth() + fb.getSouth()) / 2
+  const spanY = fb.getNorth() - fb.getSouth()
+  const spanX = (fb.getEast() - fb.getWest()) * Math.cos((midLat * Math.PI) / 180)
+  const orientation = spanX >= spanY ? 'landscape' : 'portrait'
+
   // ---- peta utama ----
   useEffect(() => {
     const map = L.map(mainMapRef.current, { attributionControl: false, preferCanvas: true })
@@ -155,17 +169,14 @@ export default function MapSheet({ layout }) {
     // pane khusus halo: di bawah garis batas, diberi blur agar lembut
     map.createPane('halo')
     const haloPane = map.getPane('halo')
-    haloPane.style.zIndex = 350            // di bawah overlayPane (400) tempat garis merah
-    haloPane.style.filter = 'blur(4px)'    // inilah yang bikin smooth
+    haloPane.style.zIndex = 350
+    haloPane.style.filter = 'blur(4px)'
     haloPane.style.pointerEvents = 'none'
 
-    const fitGeo =
-      mode === 'WA'
-        ? desa
-        : mode === 'WS'
-          ? { type: 'FeatureCollection', features: group.features }
-          : subsls
-    const padPx = mode === 'WA' ? [20, 20] : [60, 60]
+    // PENTING: set view DULU sebelum layer vektor ditambahkan
+    // (renderer canvas Leaflet error kalau layer masuk sebelum ada view).
+    // Padding kecil agar wilayah terpilih tampil zoom rapat memenuhi frame.
+    const padPx = mode === 'WA' ? [12, 12] : [30, 30]
     map.fitBounds(L.geoJSON(fitGeo).getBounds(), { padding: padPx, maxZoom: 19 })
 
     // gaya garis sesuai legenda template pusat
@@ -174,7 +185,7 @@ export default function MapSheet({ layout }) {
     const STYLE_DESA = { color: RED, weight: 2, fillOpacity: 0 }
     // Batas SLS/Sub-SLS (tetangga): merah putus-putus tipis
     const STYLE_SLS = { color: RED, weight: 1.1, dashArray: '7,5', fillOpacity: 0 }
-    // Wilayah terpilih: merah putus-putus tebal, tanpa fill (jernih)
+    // Wilayah terpilih: merah putus-putus lebih tebal, tanpa fill (jernih)
     const STYLE_SELECTED = { color: RED, weight: 2.2, dashArray: '10,7', fillOpacity: 0 }
 
     // lapisan mask putih: semua area DI LUAR wilayah terpilih
@@ -206,7 +217,7 @@ export default function MapSheet({ layout }) {
       ).addTo(map)
     }
 
-    // halo putih lembut di bawah garis batas (khas template WA)
+    // halo putih lembut di bawah garis batas (dirender di pane ber-blur)
     const addHalo = (geo, weight) => {
       L.geoJSON(geo, {
         pane: 'halo',
@@ -232,7 +243,7 @@ export default function MapSheet({ layout }) {
     if (mode === 'WA') {
       // mask luar desa
       addMask([desa])
-      // selubung tipis menutupi SELURUH peta — di template WA
+      // selubung tipis menutupi seluruh peta — di template WA
       // area terpilih pun tidak 100% jernih
       L.rectangle(
         [
@@ -241,9 +252,8 @@ export default function MapSheet({ layout }) {
         ],
         { stroke: false, fillColor: '#ffffff', fillOpacity: 0.08, interactive: false },
       ).addTo(map)
-      // halo putih dulu semua, baru garis merah di atasnya
-      allSubsls.forEach((f) => addHalo(f, 3))
-    
+      // glow hanya untuk batas antar-SLS di dalam desa (batas luar polos)
+      allSubsls.forEach((f) => addHalo(f, 4))
       allSubsls.forEach((f) => {
         L.geoJSON(f, { style: STYLE_SLS }).addTo(map)
         addAreaLabel(f)
@@ -276,6 +286,8 @@ export default function MapSheet({ layout }) {
 
     const tm = setTimeout(() => {
       map.invalidateSize()
+      // fit ulang setelah ukuran frame (potret/landscape) final
+      map.fitBounds(L.geoJSON(fitGeo).getBounds(), { padding: padPx, maxZoom: 19 })
       const b = map.getBounds()
       setCoords({
         n: b.getNorth().toFixed(6),
@@ -307,7 +319,6 @@ export default function MapSheet({ layout }) {
 
   // ---- peta lokator ----
   useEffect(() => {
-    if (mode === 'WA') return
     const map = L.map(locatorRef.current, {
       zoomControl: false,
       attributionControl: false,
@@ -317,13 +328,26 @@ export default function MapSheet({ layout }) {
       doubleClickZoom: false,
       touchZoom: false,
     })
-    L.geoJSON(KEC, {
-      style: () => ({ color: '#8a97a3', weight: 0.8, fillColor: '#f4f7fa', fillOpacity: 1 }),
-    }).addTo(map)
-    L.geoJSON(kec, {
-      style: () => ({ color, weight: 1.6, fillColor: color, fillOpacity: 0.5 }),
-    }).addTo(map)
-    map.fitBounds(L.geoJSON(KEC).getBounds(), { padding: [3, 3] })
+    // gaya template: latar putih, poligon bergaris tipis, wilayah terpilih merah
+    const BASE = { color: '#9aa4ad', weight: 0.7, fillColor: '#ffffff', fillOpacity: 1 }
+    const SEL = { color: '#D5241E', weight: 1, fillColor: '#D5241E', fillOpacity: 1 }
+    const OUTLINE = { color: '#8B2E2E', weight: 1.2, fillOpacity: 0 }
+    if (mode === 'WA') {
+      // konteks: semua desa dalam kecamatan; terpilih: desa
+      const desas = DESA.features.filter((f) => f.properties.kdkec === kec.properties.kdkec)
+      L.geoJSON({ type: 'FeatureCollection', features: desas }, { style: () => BASE }).addTo(map)
+      L.geoJSON(desa, { style: () => SEL }).addTo(map)
+      L.geoJSON(kec, { style: () => OUTLINE }).addTo(map)
+      map.fitBounds(L.geoJSON(kec).getBounds(), { padding: [3, 3] })
+    } else {
+      // konteks: semua SLS dalam desa; terpilih: SLS (WS) / sub-SLS (WSS)
+      const feats = SLS.features.filter((f) => f.properties.iddesa === dp.iddesa)
+      L.geoJSON({ type: 'FeatureCollection', features: feats }, { style: () => BASE }).addTo(map)
+      const sel = mode === 'WS' ? group.features : [subsls]
+      L.geoJSON({ type: 'FeatureCollection', features: sel }, { style: () => SEL }).addTo(map)
+      L.geoJSON(desa, { style: () => OUTLINE }).addTo(map)
+      map.fitBounds(L.geoJSON(desa).getBounds(), { padding: [3, 3] })
+    }
     const tm = setTimeout(() => map.invalidateSize(), 200)
     return () => {
       clearTimeout(tm)
@@ -333,7 +357,7 @@ export default function MapSheet({ layout }) {
 
   return (
     <div className="sheet-wrap show">
-      <div className="sheet">
+      <div className={`sheet ${orientation}`}>
         <div className="sheet-topline">
           <h1 className="sheet-title">{title}</h1>
           <div className={`id-pill${mode === 'WA' ? ' dark' : ''}`}>{pill}</div>
@@ -349,17 +373,17 @@ export default function MapSheet({ layout }) {
             <div className="coord-label coord-right">{coords && 'X: ' + coords.e}</div>
           </div>
           <div className="sidebar-info">
-            <div className="info-block">
-              <h5>Provinsi</h5>
-              <div className="val">{kec.properties.nmprov}</div>
-              <h5>Kabupaten/Kota</h5>
-              <div className="val">{kec.properties.nmkab}</div>
-              <h5>Kecamatan</h5>
-              <div className="val">{kec.properties.nmkec}</div>
-              <h5>Desa/Kelurahan</h5>
-              <div className="val">{dp.nmdesa}</div>
+            <div className="info-block b-id">
+              <h5>Provinsi :</h5>
+              <div className="val">[{dp.kdprov}] {kec.properties.nmprov}</div>
+              <h5>Kabupaten/Kota :</h5>
+              <div className="val">[{dp.kdkab}] {kec.properties.nmkab}</div>
+              <h5>Kecamatan :</h5>
+              <div className="val">[{dp.kdkec}] {kec.properties.nmkec}</div>
+              <h5>Desa/Kelurahan :</h5>
+              <div className="val">[{dp.kddesa}] {dp.nmdesa}</div>
             </div>
-            <div className="info-block">
+            <div className="info-block b-scale">
               <div className="compass-scale-row">
                 <div className="compass-wrap">
                   <svg viewBox="0 0 40 40">
@@ -379,13 +403,14 @@ export default function MapSheet({ layout }) {
                 </div>
               </div>
             </div>
-            <div className="info-block">
-              <h5>Legenda</h5>
+            <div className="info-block b-legend">
+              <h5 className="legend-head">LEGENDA</h5>
+              <div className="legend-sub">Batas Wilayah Kerja Statistik</div>
               <div>
                 <Legend mode={mode} />
               </div>
             </div>
-            <div className="info-block">
+            <div className="info-block b-form">
               <div className="form-field-row">
                 <span className="flabel">Nama Kegiatan</span>
                 <div className="fline"></div>
@@ -401,26 +426,26 @@ export default function MapSheet({ layout }) {
                 </div>
               )}
             </div>
-            {mode !== 'WA' && (
-              <div className="info-block">
-                <div className="locator-qr-row">
-                  <div className="locator-box">
-                    <span className="cap">Lokasi Peta</span>
-                    <div ref={locatorRef} id="locatorMap"></div>
-                  </div>
+            <div className="info-block b-loc">
+              <div className="locator-qr-row">
+                <div className="locator-box">
+                  <span className="cap">Lokasi Peta</span>
+                  <div ref={locatorRef} id="locatorMap"></div>
+                </div>
+                {mode !== 'WA' && (
                   <div className="qr-box">
                     <span className="cap">QR-LOC</span>
                     <QrGrid seed={seed} />
                   </div>
-                </div>
+                )}
               </div>
-            )}
-            <div className="info-block">
+            </div>
+            <div className="info-block b-logo">
               <div className="sheet-logo">
                 <img src={bpsLogo} alt="BPS" />
               </div>
             </div>
-            <div className="info-block">
+            <div className="info-block b-note">
               <div className="note-box">
                 <Note mode={mode} />
               </div>

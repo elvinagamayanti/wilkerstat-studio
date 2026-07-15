@@ -382,3 +382,107 @@ input.txt:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-pale);}
 .area-label-in{transform:translate(-50%,-50%);}
 
 .id-pill.dark{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+/* ============================================================
+   LEMBAR TEMPLATE (format A3 + tipografi + band portrait)
+   ============================================================ */
+.sheet{font-family:Arial,Helvetica,sans-serif;color:#111;display:flex;flex-direction:column;overflow:hidden;}
+.sheet .sheet-grid{flex:1;min-height:0;overflow:hidden;}
+.sheet .map-frame{height:100%;min-height:0;}
+
+/* landscape: peta kiri, panel kanan (proporsi dari .qpt asli) */
+.sheet.landscape{width:1000px;aspect-ratio:1.4142;}
+.sheet.landscape .sheet-grid{grid-template-columns:1fr 200px;}
+
+/* portrait: peta atas, band info bawah 3 kolom sesuai template
+   kiri: identitas + skala | tengah: legenda + lokasi/QR | kanan: isian + logo + keterangan */
+.sheet.portrait{width:700px;aspect-ratio:0.7071;}
+.sheet.portrait .sheet-grid{grid-template-columns:1fr;grid-template-rows:1fr auto;}
+.sheet.portrait .sidebar-info{
+  display:grid;
+  /* kiri sempit (identitas+skala) | tengah paling lebar (legenda+lokasi/QR) | kanan sedang */
+  grid-template-columns:0.75fr 1.75fr 1fr;
+  grid-template-areas:
+    "id    legend form"
+    "id    legend logo"
+    "scale loc    note";
+  grid-template-rows:auto auto 1fr;
+  gap:4px 12px;
+  padding-top:6px;
+  overflow:hidden;
+}
+.sheet.portrait .b-id{grid-area:id;}
+.sheet.portrait .b-scale{grid-area:scale;}
+.sheet.portrait .b-legend{grid-area:legend;}
+.sheet.portrait .b-loc{grid-area:loc;}
+.sheet.portrait .b-form{grid-area:form;}
+.sheet.portrait .b-logo{grid-area:logo;align-self:start;}
+.sheet.portrait .b-note{grid-area:note;}
+.sheet.portrait .info-block{border-bottom:none;padding-bottom:2px;}
+
+
+/* penyesuaian band portrait */
+.sheet.portrait #locatorMap{height:96px;}
+.sheet.portrait .qr-box{width:68px;}
+.sheet.portrait .qr-grid{width:68px;height:68px;}
+.sheet.portrait .b-scale{overflow:hidden;}
+.sheet.portrait .b-scale .scalebar-simple,
+.sheet.portrait .b-scale .scale-simple-labels,
+.sheet.portrait .b-scale .scalebar-checker,
+.sheet.portrait .b-scale .scale-ticklabels{max-width:100%;}
+
+/* logo BPS: gambar saja, tanpa teks pendamping ganda */
+.sheet .sheet-logo span{display:none;}
+
+/* garis vertikal pembatas antar seksi (seperti bar hitam di template) */
+.sheet.portrait .b-legend,
+.sheet.portrait .b-loc{
+  border-left:2px solid #111;
+  border-right:2px solid #111;
+  padding-left:12px;
+  padding-right:12px;
+}
+
+/* --- tipografi lembar --- */
+.sheet .sheet-topline{margin-bottom:7px;}
+.sheet .sheet-title{font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:15px;letter-spacing:0;}
+.sheet .id-pill{font-family:Arial,Helvetica,sans-serif;font-weight:800;font-size:11.5px;padding:4px 9px;}
+.sheet .id-pill .blank-box{width:11px;height:10px;}
+
+.sheet .sidebar-info{font-size:9px;gap:6px;overflow:hidden;}
+.sheet .info-block{border-bottom:1.5px solid #111;padding-bottom:5px;}
+.sheet .info-block:last-child{border-bottom:none;}
+.sheet .info-block h5{font-size:8px;font-weight:700;color:#111;text-transform:none;letter-spacing:0;margin:0 0 1px;}
+.sheet .info-block .val{font-size:9.5px;font-weight:800;color:#111;margin-bottom:4px;}
+
+.sheet .legend-head{font-size:10px;font-weight:800;}
+.sheet .legend-sub{font-style:italic;font-size:7.5px;color:#111;margin-bottom:4px;}
+.sheet .legend-row{font-size:8px;color:#111;gap:5px;margin-bottom:3px;}
+.sheet .legend-line{width:14px;}
+
+.sheet .form-field-row{font-size:8.5px;margin-bottom:4px;}
+.sheet .form-field-row .flabel{font-weight:700;color:#111;}
+.sheet .form-field-row .fline{height:10px;}
+.sheet .note-box{font-size:7.5px;color:#111;border:1px solid #111;border-radius:5px;padding:5px 7px;line-height:1.35;}
+.sheet .note-box b{color:#111;}
+.sheet .sheet-logo img{height:22px;}
+.sheet .compass-wrap svg{width:30px;height:30px;}
+.sheet .scale-wrap .cap{font-weight:700;color:#111;font-size:8.5px;}
+.sheet .scale-simple-labels,.sheet .scale-ticklabels{font-family:Arial,Helvetica,sans-serif;color:#111;}
+.sheet #locatorMap{height:58px;background:#fff;}
+.sheet .locator-box .cap,.sheet .qr-box .cap{font-size:7.5px;}
+.sheet .qr-box{width:58px;}
+.sheet .qr-grid{width:58px;height:58px;}
+
+.export-bar{width:auto;}
+
+/* WS-Inset: sheet template di area kanan yang bisa discroll */
+.inset-map-wrap{overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:26px;background:#DCE7EF;}
+#insetMap{position:absolute;inset:0;}
+
+@media (max-width:900px){
+  .sheet.landscape,.sheet.portrait{width:100%;aspect-ratio:auto;}
+  .sheet .map-frame{height:min(62vh,520px);}
+  .sheet.portrait .sidebar-info{display:flex;flex-direction:column;}
+  .sheet.portrait .b-legend,.sheet.portrait .b-loc{border-left:none;border-right:none;padding-left:0;padding-right:0;}
+}
